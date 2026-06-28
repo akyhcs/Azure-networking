@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Azure NAT Gateway — Traffic Flow</title>
+<style>
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: #1f2328;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+  .sub { font-size: 13px; color: #57606a; margin: 0 0 18px; }
+  svg { width: 100%; height: auto; display: block; }
+
+  .label       { font-size: 13px; fill: #1f2328; }
+  .label-bold  { font-size: 13px; font-weight: 600; fill: #1f2328; }
+  .label-sm    { font-size: 11px; fill: #57606a; }
+  .label-ip    { font-size: 11px; fill: #1f2328; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .container       { fill: none; stroke: #4a6fb5; stroke-width: 1.4; }
+  .dashed          { stroke-dasharray: 6 4; }
+  .dotted          { stroke-dasharray: 2 3; }
+
+  .arrow-out       { stroke: #1a7f37; stroke-width: 2; fill: none; }
+  .arrow-in-block  { stroke: #cf222e; stroke-width: 2; fill: none; stroke-dasharray: 4 3; }
+  .arrow-internal  { stroke: #1f2328; stroke-width: 1.4; fill: none; }
+
+  .ok-text         { font-size: 11px; fill: #1a7f37; font-weight: 600; }
+  .block-text      { font-size: 11px; fill: #cf222e; font-weight: 600; }
+
+  .legend-box      { font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Azure NAT Gateway — outbound only</h1>
+<p class="sub">Many private VMs, one shared public IP. Inbound from internet never reaches the subnet through the NAT.</p>
+
+<svg viewBox="0 0 760 980" xmlns="http://www.w3.org/2000/svg">
+
+<defs>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#1a7f37"/>
+  </marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#cf222e"/>
+  </marker>
+  <marker id="arrow-black" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2328"/>
+  </marker>
+
+  <!-- Internet cloud -->
+  <symbol id="icon-internet" viewBox="0 0 100 60">
+    <path d="M20 40 Q10 40 10 30 Q10 20 22 22 Q24 10 38 12 Q44 4 56 8 Q70 6 74 18 Q88 18 90 30 Q92 42 78 42 L24 42 Q20 42 20 40 Z"
+          fill="#e6f0fa" stroke="#4a6fb5" stroke-width="1.2"/>
+  </symbol>
+
+  <!-- VM icon -->
+  <symbol id="icon-vm" viewBox="0 0 48 48">
+    <rect x="6" y="10" width="36" height="22" rx="2" fill="#5ea0ef" stroke="#0078d4" stroke-width="0.8"/>
+    <rect x="9" y="13" width="30" height="16" fill="#0078d4"/>
+    <path d="M18 32 L18 36 L30 36 L30 32" stroke="#5ea0ef" stroke-width="2" fill="none"/>
+    <rect x="14" y="36" width="20" height="2" fill="#5ea0ef"/>
+  </symbol>
+
+  <!-- NAT Gateway icon (router-ish) -->
+  <symbol id="icon-nat" viewBox="0 0 60 48">
+    <rect x="4" y="14" width="52" height="22" rx="3" fill="#0078d4"/>
+    <rect x="8" y="18" width="44" height="3" fill="#fff" opacity="0.8"/>
+    <circle cx="14" cy="28" r="2.2" fill="#7fba00"/>
+    <circle cx="22" cy="28" r="2.2" fill="#7fba00"/>
+    <circle cx="30" cy="28" r="2.2" fill="#7fba00"/>
+    <circle cx="38" cy="28" r="2.2" fill="#7fba00"/>
+    <circle cx="46" cy="28" r="2.2" fill="#7fba00"/>
+  </symbol>
+
+  <!-- Public IP icon -->
+  <symbol id="icon-pip" viewBox="0 0 48 48">
+    <rect x="6" y="14" width="36" height="20" rx="2" fill="#5ea0ef"/>
+    <rect x="9" y="18" width="30" height="3" fill="#fff" opacity="0.7"/>
+    <circle cx="14" cy="27" r="2" fill="#fff"/>
+    <circle cx="22" cy="27" r="2" fill="#fff"/>
+    <circle cx="30" cy="27" r="2" fill="#fff"/>
+  </symbol>
+</defs>
+
+<!-- ============ INTERNET (top) ============ -->
+<use href="#icon-internet" x="290" y="20" width="180" height="108"/>
+<text class="label-bold" x="358" y="80">Internet</text>
+
+<!-- Outbound arrow (green, going UP from public IP to internet) -->
+<path class="arrow-out" d="M340 240 L340 130" marker-end="url(#arrow-green)"/>
+<text class="ok-text" x="200" y="180">outbound allowed</text>
+<text class="label-sm" x="200" y="196">(VM-initiated traffic + responses)</text>
+
+<!-- Inbound BLOCKED arrow (red, coming DOWN from internet, stopped at public IP) -->
+<path class="arrow-in-block" d="M420 130 L420 240"/>
+<line x1="408" y1="232" x2="432" y2="256" stroke="#cf222e" stroke-width="2.5"/>
+<line x1="432" y1="232" x2="408" y2="256" stroke="#cf222e" stroke-width="2.5"/>
+<text class="block-text" x="450" y="180">inbound BLOCKED</text>
+<text class="label-sm" x="450" y="196">(no unsolicited connections in)</text>
+
+<!-- ============ PUBLIC IP ============ -->
+<use href="#icon-pip" x="316" y="245" width="48" height="48"/>
+<text class="label-bold" x="298" y="310">Public IP</text>
+<text class="label-ip" x="296" y="326">20.185.211.24</text>
+<text class="label-sm" x="306" y="340">(static)</text>
+
+<!-- arrow PIP -> NAT (internal, both directions implied) -->
+<path class="arrow-internal" d="M340 350 L340 395" marker-end="url(#arrow-black)"/>
+
+<!-- ============ NAT GATEWAY ============ -->
+<use href="#icon-nat" x="306" y="395" width="68" height="54"/>
+<text class="label-bold" x="294" y="468">NAT Gateway</text>
+<text class="label-sm" x="278" y="484">attached to subnet</text>
+
+<!-- arrow NAT -> subnet (subnet's default route) -->
+<path class="arrow-internal" d="M340 500 L340 545" marker-end="url(#arrow-black)"/>
+<text class="label-sm" x="350" y="525">subnet's default</text>
+<text class="label-sm" x="350" y="538">next hop = NAT</text>
+
+<!-- ============ VNet container ============ -->
+<rect class="container dashed" x="40" y="555" width="680" height="380" rx="6"/>
+<text class="label-bold" x="58" y="578">Virtual Network</text>
+<text class="label-ip" x="158" y="578">10.0.0.0/16</text>
+
+<!-- ============ Subnet container ============ -->
+<rect class="container dotted" x="70" y="600" width="620" height="310" rx="4"/>
+<text class="label-bold" x="88" y="620">Subnet</text>
+<text class="label-ip" x="140" y="620">10.0.1.0/24</text>
+
+<!-- VM 1 -->
+<use href="#icon-vm" x="130" y="660" width="60" height="60"/>
+<text class="label-bold" x="138" y="740">VM-app-01</text>
+<text class="label-ip" x="138" y="756">10.0.1.4</text>
+
+<!-- VM 2 -->
+<use href="#icon-vm" x="350" y="660" width="60" height="60"/>
+<text class="label-bold" x="358" y="740">VM-app-02</text>
+<text class="label-ip" x="358" y="756">10.0.1.5</text>
+
+<!-- VM 3 -->
+<use href="#icon-vm" x="570" y="660" width="60" height="60"/>
+<text class="label-bold" x="578" y="740">VM-app-03</text>
+<text class="label-ip" x="578" y="756">10.0.1.6</text>
+
+<!-- Arrows from each VM up to NAT Gateway (showing they all share it) -->
+<path class="arrow-out" d="M160 660 L160 540 L320 540" marker-end="url(#arrow-green)"/>
+<path class="arrow-out" d="M380 660 L380 545" marker-end="url(#arrow-green)"/>
+<path class="arrow-out" d="M600 660 L600 540 L360 540" marker-end="url(#arrow-green)"/>
+
+<!-- SNAT explanation -->
+<rect x="130" y="800" width="500" height="90" rx="4" fill="#f6f8fa" stroke="#d0d7de"/>
+<text class="label-bold" x="148" y="822">SNAT translation</text>
+<text class="label-sm" x="148" y="842">All three VMs share Public IP 20.185.211.24 going out.</text>
+<text class="label-sm" x="148" y="858">Source IP gets rewritten: 10.0.1.4:54321 → 20.185.211.24:5xxxx</text>
+<text class="label-sm" x="148" y="874">The destination sees one IP, no matter which VM called.</text>
+
+<!-- ============ Legend ============ -->
+<g transform="translate(40, 950)">
+  <line x1="0" y1="0" x2="30" y2="0" class="arrow-out" marker-end="url(#arrow-green)"/>
+  <text class="legend-box" x="38" y="4">allowed</text>
+
+  <line x1="130" y1="0" x2="160" y2="0" class="arrow-in-block"/>
+  <text class="legend-box" x="168" y="4">blocked</text>
+
+  <line x1="260" y1="0" x2="290" y2="0" class="arrow-internal" marker-end="url(#arrow-black)"/>
+  <text class="legend-box" x="298" y="4">internal routing</text>
+</g>
+
+</svg>
+</div>
+</body>
+</html>
+
