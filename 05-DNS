@@ -1,0 +1,25 @@
+DNS has four roles that hand off to each other. The slide lists them but doesn't show how they actually work together. Easier to grasp with a real lookup — say you type `www.example.com`:
+
+**Step 1 — Recursive Resolver (your ISP's DNS, or `8.8.8.8`, or in Azure `168.63.129.16`)**
+Your machine asks: "what's the IP for www.example.com?" The resolver is the *errand-runner*. It doesn't know the answer, but it knows who to ask. It does all the legwork on your behalf.
+
+**Step 2 — Root Server**
+Resolver asks a root server (`.`): "where do I find `.com`?" Root doesn't know the final answer — it just points to the TLD servers. There are 13 root server clusters globally, named A through M.
+
+**Step 3 — TLD Server (`.com`, `.org`, `.in`, etc.)**
+Resolver asks the `.com` TLD: "where do I find `example.com`?" TLD doesn't know the IP either — it just points to whoever is authoritative for `example.com`.
+
+**Step 4 — Authoritative Server**
+Resolver asks the authoritative server for `example.com`: "what's the IP for `www`?" This one *actually knows* — it has the record. Returns `93.184.216.34`.
+
+Resolver hands that back to your machine. Done.
+
+**The mental model:** root → TLD → authoritative is a *hierarchy of who's responsible for what slice of the namespace*. The recursive resolver is the only one that walks the whole chain; the rest each only know their level and delegate down.
+
+**Tying to Azure (since you're on AZ-700):**
+- **Azure-provided DNS** (`168.63.129.16`) is the recursive resolver inside every VNet by default
+- **Azure Public DNS / Azure DNS zones** = you hosting *authoritative* records for your domain on Azure
+- **Azure Private DNS Zones** = authoritative records that only resolve inside your VNets (e.g., `myfunction.privatelink.azurewebsites.net` → private IP)
+- **Private DNS Resolver** = a managed recursive resolver you deploy when on-prem needs to resolve Azure private zones, or vice versa
+
+That last bit is what'll come up on the exam and in your DocuSign pipeline — private endpoints only work because Private DNS Zones override public DNS answers with private IPs inside the VNet.
