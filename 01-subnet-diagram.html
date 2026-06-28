@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Azure VM Architecture</title>
+<style>
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: #1f2328;
+  }
+  .diagram-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  svg { width: 100%; height: auto; display: block; }
+  .label { font-size: 13px; fill: #1f2328; }
+  .label-bold { font-size: 13px; font-weight: 600; fill: #1f2328; }
+  .label-sm { font-size: 11px; fill: #1f2328; }
+  .container { fill: none; stroke: #4a6fb5; stroke-width: 1.4; }
+  .dashed { stroke-dasharray: 6 4; }
+  .dotted { stroke-dasharray: 2 3; }
+  .arrow { stroke: #1f2328; stroke-width: 1.2; fill: none; }
+</style>
+</head>
+<body>
+<div class="diagram-wrap">
+<svg viewBox="0 0 720 980" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2328"/>
+    </marker>
+
+    <!-- Azure subscription key icon -->
+    <symbol id="icon-key" viewBox="0 0 24 24">
+      <circle cx="8" cy="12" r="4" fill="none" stroke="#d4a017" stroke-width="2"/>
+      <path d="M11 12 L22 12 M18 12 L18 16 M22 12 L22 16" stroke="#d4a017" stroke-width="2" fill="none"/>
+    </symbol>
+
+    <!-- Resource group cube icon -->
+    <symbol id="icon-rg" viewBox="0 0 24 24">
+      <path d="M12 2 L22 7 L22 17 L12 22 L2 17 L2 7 Z" fill="#0078d4" stroke="#005a9e" stroke-width="0.5"/>
+      <path d="M12 2 L12 22 M2 7 L12 12 L22 7" stroke="#ffffff" stroke-width="0.6" fill="none" opacity="0.6"/>
+    </symbol>
+
+    <!-- VNet icon (three dots connected) -->
+    <symbol id="icon-vnet" viewBox="0 0 24 24">
+      <circle cx="5" cy="12" r="2.5" fill="#0078d4"/>
+      <circle cx="19" cy="6" r="2.5" fill="#0078d4"/>
+      <circle cx="19" cy="18" r="2.5" fill="#0078d4"/>
+      <path d="M7 11 L17 7 M7 13 L17 17" stroke="#0078d4" stroke-width="1.2"/>
+    </symbol>
+
+    <!-- VM icon -->
+    <symbol id="icon-vm" viewBox="0 0 48 48">
+      <rect x="6" y="10" width="36" height="22" rx="2" fill="#5ea0ef" stroke="#0078d4" stroke-width="0.8"/>
+      <rect x="9" y="13" width="30" height="16" fill="#0078d4"/>
+      <path d="M18 32 L18 36 L30 36 L30 32" stroke="#5ea0ef" stroke-width="2" fill="none"/>
+      <rect x="14" y="36" width="20" height="2" fill="#5ea0ef"/>
+    </symbol>
+
+    <!-- NIC icon (green chip) -->
+    <symbol id="icon-nic" viewBox="0 0 48 48">
+      <rect x="8" y="10" width="32" height="28" rx="2" fill="#7fba00"/>
+      <rect x="12" y="14" width="24" height="14" fill="#3a4a1a"/>
+      <circle cx="18" cy="21" r="2.5" fill="#fff"/>
+      <rect x="24" y="17" width="2" height="9" fill="#fff"/>
+      <rect x="28" y="17" width="2" height="9" fill="#fff"/>
+      <rect x="32" y="17" width="2" height="9" fill="#fff"/>
+      <!-- pins -->
+      <rect x="6"  y="14" width="2" height="2" fill="#d4a017"/>
+      <rect x="6"  y="20" width="2" height="2" fill="#d4a017"/>
+      <rect x="6"  y="26" width="2" height="2" fill="#d4a017"/>
+      <rect x="6"  y="32" width="2" height="2" fill="#d4a017"/>
+      <rect x="40" y="14" width="2" height="2" fill="#d4a017"/>
+      <rect x="40" y="20" width="2" height="2" fill="#d4a017"/>
+      <rect x="40" y="26" width="2" height="2" fill="#d4a017"/>
+      <rect x="40" y="32" width="2" height="2" fill="#d4a017"/>
+    </symbol>
+
+    <!-- Disk icon (stacked) -->
+    <symbol id="icon-disk" viewBox="0 0 48 48">
+      <ellipse cx="24" cy="14" rx="14" ry="4" fill="#0078d4"/>
+      <path d="M10 14 L10 22 Q10 26 24 26 Q38 26 38 22 L38 14" fill="#0078d4"/>
+      <ellipse cx="24" cy="22" rx="14" ry="4" fill="#005a9e"/>
+      <ellipse cx="24" cy="30" rx="14" ry="4" fill="#7fba00"/>
+      <path d="M10 30 L10 34 Q10 38 24 38 Q38 38 38 34 L38 30" fill="#7fba00"/>
+      <circle cx="24" cy="14" r="1.5" fill="#fff"/>
+      <circle cx="24" cy="30" r="1.5" fill="#fff"/>
+    </symbol>
+
+    <!-- Public IP icon -->
+    <symbol id="icon-pip" viewBox="0 0 48 48">
+      <rect x="6" y="14" width="36" height="20" rx="2" fill="#5ea0ef"/>
+      <rect x="9" y="18" width="30" height="3" fill="#fff" opacity="0.7"/>
+      <circle cx="14" cy="27" r="2" fill="#fff"/>
+      <circle cx="22" cy="27" r="2" fill="#fff"/>
+      <circle cx="30" cy="27" r="2" fill="#fff"/>
+    </symbol>
+
+    <!-- NSG shield icon -->
+    <symbol id="icon-nsg" viewBox="0 0 48 48">
+      <path d="M24 6 L40 12 L40 24 Q40 36 24 42 Q8 36 8 24 L8 12 Z" fill="#5ea0ef" stroke="#0078d4" stroke-width="0.8"/>
+      <path d="M24 12 L34 16 L34 24 Q34 32 24 36 Q14 32 14 24 L14 16 Z" fill="#0078d4"/>
+    </symbol>
+  </defs>
+
+  <!-- Azure subscription (outermost) -->
+  <rect class="container dashed" x="20" y="40" width="680" height="920" rx="6"/>
+  <use href="#icon-key" x="36" y="18" width="22" height="22"/>
+  <text class="label-bold" x="64" y="34">Azure subscription1</text>
+
+  <!-- Resource group -->
+  <rect class="container dashed" x="50" y="90" width="620" height="850" rx="6"/>
+  <use href="#icon-rg" x="68" y="72" width="22" height="22"/>
+  <text class="label-bold" x="96" y="88">Resource Group</text>
+  <text class="label" x="206" y="88">rg-az700-dev-eus</text>
+
+  <!-- Virtual Network -->
+  <rect class="container dashed" x="80" y="140" width="560" height="780" rx="6"/>
+  <use href="#icon-vnet" x="98" y="120" width="22" height="22"/>
+  <text class="label-bold" x="126" y="135">Virtual Network</text>
+  <text class="label" x="230" y="130">vnet-dev-eus-01 -</text>
+  <text class="label" x="230" y="146">10.0.0.0/16</text>
+
+  <!-- Subnet (dotted) -->
+  <rect class="container dotted" x="110" y="180" width="500" height="500" rx="4"/>
+  <text class="label-bold" x="128" y="200">Subnet</text>
+  <text class="label" x="320" y="195">snet-dev-eus-web</text>
+  <text class="label" x="345" y="211">10.0.0.0/24</text>
+
+  <!-- Virtual Machine -->
+  <use href="#icon-vm" x="290" y="240" width="60" height="60"/>
+  <text class="label-bold" x="280" y="320">Virtual Machine</text>
+  <text class="label" x="284" y="338">vm-dev-web-01</text>
+
+  <!-- Network Interfaces (NIC) -->
+  <use href="#icon-nic" x="290" y="360" width="60" height="60"/>
+  <text class="label-bold" x="278" y="438">Network</text>
+  <text class="label-bold" x="278" y="454">Interfaces</text>
+  <text class="label" x="380" y="388">Private IP address -</text>
+  <text class="label" x="410" y="404">10.0.0.4</text>
+
+  <!-- IP Configuration -->
+  <rect x="288" y="490" width="80" height="50" rx="3" fill="none" stroke="#1f2328" stroke-width="1"/>
+  <text class="label" x="313" y="510">IP</text>
+  <text class="label" x="298" y="528">Configuration</text>
+
+  <!-- NIC -> IP config arrow -->
+  <path class="arrow" d="M320 422 L320 490" marker-end="url(#arrow)"/>
+
+  <!-- IP config -> Public IP arrow (down + right) -->
+  <path class="arrow" d="M328 540 L328 740 L400 740" marker-end="url(#arrow)"/>
+
+  <!-- OS Disk (outside subnet, inside VNet) -->
+  <use href="#icon-disk" x="180" y="720" width="60" height="60"/>
+  <text class="label-bold" x="190" y="800">OS Disk</text>
+
+  <!-- Public IP Addresses -->
+  <use href="#icon-pip" x="380" y="720" width="60" height="60"/>
+  <text class="label-bold" x="378" y="800">Public IP</text>
+  <text class="label-bold" x="380" y="816">Addresses</text>
+  <text class="label" x="378" y="848">20.185.211.24</text>
+  <!-- arrow pointing up to the public IP from label -->
+  <path class="arrow" d="M410 840 L410 790" marker-end="url(#arrow)"/>
+
+  <!-- Network Security Groups -->
+  <use href="#icon-nsg" x="520" y="720" width="60" height="60"/>
+  <text class="label-bold" x="520" y="800">Network</text>
+  <text class="label-bold" x="520" y="816">Security</text>
+  <text class="label-bold" x="525" y="832">Groups</text>
+
+</svg>
+</div>
+</body>
+</html>
