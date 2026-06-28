@@ -1,0 +1,25 @@
+No — that's a common misconception worth untangling. NAT Gateway doesn't *control* whether traffic is allowed; it *enables and translates* it. Once you attach it, all outbound from the subnet flows through it. There's no allow/deny logic in NAT Gateway itself.
+
+Think of it as three separate jobs in Azure networking:
+
+**1. Connectivity (the "can this even happen" layer)**
+- NAT Gateway: gives private VMs a way out to the internet with a predictable source IP
+- Public IP on the VM: same job, but per-resource and bidirectional
+- VNet integration / Private Endpoints: keep the traffic off the internet entirely
+
+**2. Access control (the "is this allowed" layer)**
+- **NSG (Network Security Group):** allow/deny rules by IP, port, protocol, service tag — the closest thing to what you described
+- **Azure Firewall:** deeper control — FQDN rules ("only allow `*.docusign.net`"), TLS inspection, threat intel
+- **UDRs:** can blackhole traffic (set next-hop to None) or force it through a firewall
+
+**3. Identity & policy (the "who/what" layer)**
+- Managed Identity, RBAC, Azure Policy
+
+NAT Gateway sits in layer 1. If you want to actually *block* a VM from reaching the internet, you'd use an NSG outbound deny rule, or route 0.0.0.0/0 through Azure Firewall and define rules there, or simply not attach a NAT Gateway / Public IP / Load Balancer at all (with default outbound being deprecated, that increasingly means no internet).
+
+In your DocuSign pipeline the layering is doing exactly this:
+- NSG on the Function subnet says *what's allowed* (e.g., only 443 outbound)
+- NAT Gateway is *how it gets there* with a stable IP Infisical can allowlist
+- Private Endpoints for Service Bus / Blob mean that traffic never goes through either — it stays on the Azure backbone
+
+Two different questions, two different tools.
