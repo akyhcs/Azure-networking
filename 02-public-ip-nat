@@ -1,0 +1,23 @@
+Different jobs — easy to mix up because both involve a public IP, but the direction of traffic is what separates them.
+
+**Public IP (on a resource)**
+- Bidirectional: handles inbound *and* outbound
+- Attached to one resource (VM NIC, Load Balancer, App Gateway, Front Door, etc.)
+- Use when something needs to be *reachable from the internet* — a web server, a jump box you SSH to, a load balancer fronting an app
+
+**NAT Gateway**
+- Outbound only — no inbound at all
+- Attached to a *subnet*, shared by everything in it
+- SNATs many private resources behind one (or a pool of) public IP
+- Use when private resources need to *call out* to the internet but should never be reachable from it — Functions hitting an external API, VMs pulling packages, your pipeline calling Infisical
+
+**The rule of thumb**
+
+- Need someone to reach you? → Public IP (usually behind a Load Balancer / App Gateway / Front Door, not directly on a VM)
+- Need to reach someone else from private space? → NAT Gateway
+
+Your DocuSign pipeline is actually a clean example of both: inbound from DocuSign comes through Front Door (which has the public IP / public anycast), and outbound from the Function to Infisical goes through the NAT Gateway. The Function itself has no public IP — it's VNet-integrated and private.
+
+Why not just slap a Public IP on the Function for outbound? Two reasons:
+1. SNAT port exhaustion — App Service's default outbound has a tiny SNAT port pool shared across the plan. NAT Gateway gives you ~64k ports per public IP.
+2. Predictable egress IP — Infisical (or any partner) can allowlist your NAT IP. With ambient outbound, the egress IP can change.
